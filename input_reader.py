@@ -1,0 +1,1 @@
+# Class that reads the given input and allows other classes to acces
