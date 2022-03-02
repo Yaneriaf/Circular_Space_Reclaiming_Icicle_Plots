@@ -7,4 +7,5 @@ class Main:
         self.in_reader = InputReader(path)
 
 
-Main('./data/carnivora.newick')
+p = Main('./data/carnivora.newick')
+p.in_reader.read_child()

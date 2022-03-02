@@ -6,8 +6,9 @@ class InputReader:
 
     def __init__(self, path):
         with io.open(path, encoding='utf8') as file:
-            self.trees = nw.load(file)[0]
-            print(self.trees.ascii_art())
+            self.trees = nw.load(file)
+            print(self.trees[0].ascii_art())
 
-    def read_child():
-        pass
+    def read_child(self, node):
+        return node.descendants
+            
