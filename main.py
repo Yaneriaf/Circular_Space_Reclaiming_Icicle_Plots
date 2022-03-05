@@ -9,7 +9,6 @@ class Main:
 
 
 # p = Main('./data/carnivora.newick')
-# p = Main('D:/Circular_Space_Reclaiming_Icicle_Plots/data/carnivora.newick')
 gui = GUI()
 gui.run_gui()
 # p.in_reader.read_child()

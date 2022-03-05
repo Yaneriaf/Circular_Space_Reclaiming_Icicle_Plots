@@ -2,13 +2,20 @@ from tkinter import *
 from tkinter import filedialog
 from input_reader import InputReader
 
+# This function facilitates the selection of the input file and the creation of the input 
+# reader object for it
 def import_button_function(self):
     path = filedialog.askopenfile(initialdir="/", title="Select file").name
-    print(path[:len(path)-5])
-    self.input_reader = InputReader(path)
+    self.input_reader = InputReader(path[:len(path)-5])
 
-def change_vis_button_function():
-    print("changed")
+def change_vis_button_function(self):
+    if self.input_reader != None:
+        print(self.input_reader.trees[0].ascii_art())
+    else:
+        print("no file selected yet")
+
+def export_button_function(self):
+    print("not yet implemented")
 
 class GUI:
 
@@ -43,18 +50,19 @@ class GUI:
         # The button/filethingy used for importing
         import_button = Button(root, text="Import", bg=self.bg_color, fg="white", 
             activebackground=self.second_color, activeforeground="white", 
-            command=lambda: import_button_function(self))
+            command=lambda:import_button_function(self))
         import_button.grid(row=0, column=0, sticky="nsew", padx=(10,10), pady=(10,10))
 
         # The change vis button
         change_button = Button(root, text="Change visualization", bg=self.bg_color, 
             fg="white", activebackground=self.second_color, activeforeground="white", 
-            command=change_vis_button_function)
+            command=lambda:change_vis_button_function(self))
         change_button.grid(row=1, column=0, sticky="nsew", padx=(10,10), pady=(10,10))
 
         # The export button
         export_button = Button(root, text="Export", bg=self.bg_color, fg="white", 
-            activebackground=self.second_color, activeforeground="white")
+            activebackground=self.second_color, activeforeground="white",
+            command=lambda:export_button_function(self))
         export_button.grid(row=2, column=0, sticky="nsew", padx=(10,10), pady=(10,10))
 
         # The animation speed slider (ugly)
