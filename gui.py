@@ -44,8 +44,12 @@ class GUI:
         left_frame = Frame(self.root, bg = self.bg_color)
         left_frame.place(relheight=1, width = 250)
         # The grid layout
-        for i in range(6):
-            left_frame.rowconfigure(i, weight=1)
+        left_frame.rowconfigure(0, weight=0)
+        left_frame.rowconfigure(1, weight=0)
+        left_frame.rowconfigure(2, weight=0)
+        left_frame.rowconfigure(3, weight=0)
+        left_frame.rowconfigure(4, weight=0)
+        left_frame.rowconfigure(5, weight=1)
         left_frame.columnconfigure(0, weight=1)
 
         # The button/filethingy used for importing
