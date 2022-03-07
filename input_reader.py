@@ -12,7 +12,7 @@ class InputReader:
             self.newick_tree = nw.load(file)
 
         f = open(path, "r")
-        self.tree = Tree("(A,B,C)F;", format=1)
+        self.tree = Tree(f.read(), format=1)
         print(self.tree)
 
     def read_child(self, node):
