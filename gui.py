@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 from input_reader import InputReader
 
+# compute the height of a tree (naive method)
 def compute_heigth(node, current):
     children = node.get_children()
     depths = []
@@ -20,13 +21,17 @@ class GUI:
         self.input_reader = None
         self.tree_nodes = []
         self.tree_height = 0
+        self.selected_node = None
+        self.selected_rect = None
 
         # Colors used
         self.bg_color = "#1A2227"
         self.second_color = "#22323C"
+        self.node_color = "#fb0"
+        self.select_color = "#a61b70"
 
     # presses a node and updates the information
-    def node_press(self, node):
+    def node_press(self, node, rect):
         self.selected_label.config(text = "Selected = " + node.name)
         if (node.up == None):
             self.parent_label.config(text = "Parent = None")
@@ -41,6 +46,14 @@ class GUI:
                 children_string += "    "  + i.name + "\n"
             self.children_label.config(text = "Children = \n" + children_string) 
 
+        # Keep track of what is selected
+        if self.selected_rect != None:
+            self.plot_canvas.itemconfig(self.selected_rect, fill =self.node_color)
+
+        self.plot_canvas.itemconfig(rect, fill = self.select_color)
+        self.selected_rect = rect
+        self.selected_node = node
+
     # Draws the tree using a recursive call 
     def draw_tree(self, canvas, node, height, row, min_x, max_x):
         children = node.get_children()
@@ -50,15 +63,15 @@ class GUI:
 
         # Draw the current node
         if node.up == None:
-            canvas.create_rectangle(min_x, min_y, max_x, max_y, outline="#000000", 
-                fill="#fb0", tag="root_node" + node.name)
+            rectangle = canvas.create_rectangle(min_x, min_y, max_x, max_y, outline="#000000", 
+                fill=self.node_color, tag="root_node" + node.name)
             canvas.tag_bind("root_node" + node.name, 
-                "<Button-1>", lambda event, node=node:self.node_press(node))
+                "<Button-1>", lambda event, node=node, rect=rectangle:self.node_press(node, rect))
         else: 
-            canvas.create_rectangle(min_x, min_y, max_x, max_y, outline="#000000", 
-                fill="#fb0", tag=node.up.name + node.name)
+            rectangle = canvas.create_rectangle(min_x, min_y, max_x, max_y, outline="#000000", 
+                fill=self.node_color, tag=node.up.name + node.name)
             canvas.tag_bind(node.up.name + node.name, 
-                "<Button-1>", lambda event, node=node:self.node_press(node))
+                "<Button-1>", lambda event, node=node, rect=rectangle:self.node_press(node, rect))
 
         # This means you see updates in between
         self.root.update()
@@ -83,21 +96,27 @@ class GUI:
         self.draw_tree(self.plot_canvas, self.input_reader.get_tree(), 
             self.tree_height, 1, 250, self.plot_canvas.winfo_width())
 
+    # The event handler for pressing the change vis button
     def change_vis_button_function(self):
         if self.input_reader != None:
             print(self.input_reader.trees[0].ascii_art())
         else:
             print("no file selected yet")
 
+    # The event handler for pressing the export button
     def export_button_function(self):
         print(self.import_button.winfo_width())
 
+    # The event handler for resizing the screen, redraw and clear selection 
     def resize(self, event):
         if self.input_reader != None:
             self.plot_canvas.delete("all")
             self.draw_tree(self.plot_canvas, self.input_reader.get_tree(), 
                 self.tree_height, 1, 250, self.plot_canvas.winfo_width())
-
+            self.selected_label.config(text="[Selected Node]")
+            self.parent_label.config(text="[Parent Node]")
+            self.children_label.config(text="[Children Nodes]")
+        
     def run_gui(self):
         
         # The root frame
@@ -173,7 +192,7 @@ class GUI:
             bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
         self.children_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(10,10))
 
-        # details text not needed rn
+        # details text (not needed rn)
         # self.detail_label = Label(information_frame, text="[Node details]", 
         #     bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
         # self.detail_label.grid(row=3, column=0, sticky = "w", padx=(10,10), pady=(10,10))
