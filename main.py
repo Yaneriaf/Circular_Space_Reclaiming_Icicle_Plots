@@ -11,7 +11,7 @@ class Main:
         self.icicle.drawIcicile()
 
 
-p = Main('./data/carnivora.newick')
-#gui = GUI()
-#gui.run_gui()
+# p = Main('./data/carnivora.newick')
+gui = GUI()
+gui.run_gui()
 #p.in_reader.read_child()

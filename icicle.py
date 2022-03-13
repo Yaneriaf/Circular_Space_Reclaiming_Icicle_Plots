@@ -1,6 +1,6 @@
 # Class that constructs the icicle plot
 from tkinter import *
-from ete3 import Tree, TreeStyle
+from ete3 import Tree
 
 class Icicle:
 
