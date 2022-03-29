@@ -4,7 +4,8 @@ from time import sleep
 from tkinter import *
 from tkinter import filedialog
 from input_reader import InputReader
-from PIL import Image 
+from PIL import Image
+import numpy as np
 
 # compute the height of a tree (naive method)
 def compute_heigth(node, current):
@@ -36,6 +37,8 @@ class GUI:
         self.second_color = "#22323C"
         self.node_color = "#fb0"
         self.select_color = "#a61b70"
+        self.mid_x = 350
+        self.mid_y = 350
 
     # presses a node and updates the information
     def node_press(self, node, rect):
@@ -54,15 +57,15 @@ class GUI:
             self.children_label.config(text = "Children = \n" + children_string) 
 
         #get node from dictionary for the color
-        n = next(item for item in self.tree_nodes if item["node"] == node)
+        # n = next(item for item in self.tree_nodes if item["node"] == node)
         # Keep track of what is selected
         if self.selected_rect != None:
-            self.plot_canvas.itemconfig(self.selected_rect, fill =self.selected_n["fill"])
+            self.plot_canvas.itemconfig(self.selected_rect, fill =self.node_color)
 
         self.plot_canvas.itemconfig(rect, fill = self.select_color)
         self.selected_rect = rect
         self.selected_node = node
-        self.selected_n = next(item for item in self.tree_nodes if item["node"] == node)
+        # self.selected_n = next(item for item in self.tree_nodes if item["node"] == node)
 
     # Start the drawing and recursion steps for the reclaiming icicle plot
     def draw_reclaiming_driver(self, canvas, node, height, row, min_x, max_x):
@@ -263,6 +266,40 @@ class GUI:
                 self.draw_tree(canvas, children[i], height, row+1, 
                     min_x+(portion*i), min_x+(portion*(i+1)))
 
+    def draw_sunburst(self, canvas, node, depth, layer, min_deg, max_deg):
+        smallest_direction = min(self.mid_x, self.mid_y)
+        offset = smallest_direction / depth * layer
+        children = node.get_children()
+        coords = []
+
+        # Outer ring of sector
+        for i in range(min_deg, max_deg):
+            coords.append((self.mid_x + offset * np.cos(i * np.pi / 180),
+                           self.mid_y + offset * layer * np.sin(i * np.pi / 180)))
+        if node.up is None:
+            root = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
+            canvas.tag_bind("root_node" + node.name,
+                            "<Button-1>", lambda event, node=node, rect=root: self.node_press(node, rect))
+        else:
+            # Inner ring of sector
+            for i in range(max_deg, min_deg, -1):
+                coords.append((self.mid_x + offset * 0.5 * np.cos(i * np.pi / 180),
+                               self.mid_y + offset * 0.5 * np.sin(i * np.pi / 180)))
+            sector = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
+            canvas.tag_bind("root_node" + node.name,
+                            "<Button-1>", lambda event, node=node, rect=sector: self.node_press(node, rect))
+
+        self.root.update()
+        self.root.update_idletasks()
+
+        # If there are children, draw those
+        width = max_deg - min_deg
+        if len(children) > 0:
+            portion = width // len(children)
+            for i in range(len(children)):
+                self.draw_sunburst(canvas, children[i], depth, layer + 1,
+                                   min_deg + (portion * i), min_deg + (portion * (i + 1)))
+
     # This function facilitates the selection of the input file and the creation of the input 
     # reader object for it
     def import_button_function(self):
@@ -271,10 +308,11 @@ class GUI:
         self.file_label.config(text = path[:len(path)-5])
         self.tree_height = compute_heigth(self.input_reader.get_tree(), 1)
         self.plot_canvas.delete("all")
-        self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
-            self.tree_height, 1, 0, self.plot_canvas.winfo_width())
-        # self.draw_tree(self.plot_canvas, self.input_reader.get_tree(), 
-        #     self.tree_height, 1, 250, self.plot_canvas.winfo_width())
+        # self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+        #                             self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+        # self.draw_tree(self.plot_canvas, self.input_reader.get_tree(),
+        #                self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+        self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), self.tree_height, 1, 0, 360)
 
     # The event handler for pressing the change vis button
     def change_vis_button_function(self):
@@ -299,16 +337,20 @@ class GUI:
         self.space_reclaiming_factor = float(self.space_reclaiming_factor_entry.get())
         self.hue_color = int(self.hue_color_entry.get())
 
-        self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
+        self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
             self.tree_height, 1, 0, self.plot_canvas.winfo_width())
 
     # The event handler for resizing the screen, redraw and clear selection 
     def resize(self, event):
+        self.mid_x = (self.plot_canvas.winfo_width())/2
+        self.mid_y = self.plot_canvas.winfo_height()/2
         if self.input_reader != None:
             self.plot_canvas.delete("all")
-            # self.draw_tree(self.plot_canvas, self.input_reader.get_tree(), 
-            #     self.tree_height, 1, 250, self.plot_canvas.winfo_width())
-            self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+            # self.draw_tree(self.plot_canvas, self.input_reader.get_tree(),
+            #                self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+            # self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+            #                             self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+            self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), self.tree_height, 1, 0, 360)
             self.selected_label.config(text="[Selected Node]")
             self.parent_label.config(text="[Parent Node]")
             self.children_label.config(text="[Children Nodes]")
