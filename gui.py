@@ -1,3 +1,4 @@
+import colorsys
 from math import floor
 from time import sleep
 from tkinter import *
@@ -15,6 +16,9 @@ def compute_heigth(node, current):
         for i in children: 
             depths.append(compute_heigth(i, current+1))
         return max(depths)
+
+def rgb2hex(r,g,b):
+    return "#{:02x}{:02x}{:02x}".format(r,g,b)
     
 class GUI:
 
@@ -48,13 +52,16 @@ class GUI:
                 children_string += "    "  + i.name + "\n"
             self.children_label.config(text = "Children = \n" + children_string) 
 
+        #get node from dictionary for the color
+        n = next(item for item in self.tree_nodes if item["node"] == node)
         # Keep track of what is selected
         if self.selected_rect != None:
-            self.plot_canvas.itemconfig(self.selected_rect, fill =self.node_color)
+            self.plot_canvas.itemconfig(self.selected_rect, fill =self.selected_n["fill"])
 
         self.plot_canvas.itemconfig(rect, fill = self.select_color)
         self.selected_rect = rect
         self.selected_node = node
+        self.selected_n = next(item for item in self.tree_nodes if item["node"] == node)
 
     # Start the drawing and recursion steps for the reclaiming icicle plot
     def draw_reclaiming_driver(self, canvas, node, height, row, min_x, max_x):
@@ -63,7 +70,10 @@ class GUI:
         self.shrinking_factor = 0.5
         self.max_span = 2
         self.space_reclaiming_factor = 0.8
+        self.hue_color = 122
 
+        # Needed for color later
+        self.number_of_nodes = len(node)
         # These two lines might not be needed, but nice to have for maybe the sunburst
         self.max_node_size = max_x
         offset = min_x + (max_x - self.max_node_size)/2
@@ -76,8 +86,16 @@ class GUI:
         max_y = (canvas.winfo_height()/height)*row
         self.height = max_y - min_y
 
-        polygon = canvas.create_polygon([offset,min_y,max_x,min_y,max_x,max_y,offset,max_y], outline="#000000", 
-                fill=self.node_color, tag="root_node" + node.name)
+        h = self.hue_color / 360
+        s = 1 - 1/self.tree_height
+        v = min(0.3 + 0.7 * 1/self.tree_height, 1)
+        rgb = colorsys.hsv_to_rgb(h,s,v)
+        hex = rgb2hex(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+        outline_rgb = colorsys.hsv_to_rgb(h,s,0.7*v)
+        outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), int(outline_rgb[2]*255))
+
+        polygon = canvas.create_polygon([offset,min_y,max_x,min_y,max_x,max_y,offset,max_y], outline=outline_hex, 
+                fill=hex, tag="root_node" + node.name)
         canvas.tag_bind("root_node" + node.name, 
                 "<Button-1>", lambda event, node=node, rect=polygon:self.node_press(node, rect))
 
@@ -91,7 +109,8 @@ class GUI:
             "y" : max_y,
             "w" : self.max_node_size,
             "sticky": False,
-            "span": 0
+            "span": 0,
+            "fill" : hex
         })
 
         children = node.get_children()
@@ -164,8 +183,17 @@ class GUI:
                     delta_width = min(delta, self.max_node_size) # check to be not over the maximum allowed size
                     offset = 250 + (delta - delta_width)/2 # Using 250 here since that is the start left side coordinate of the canvas
 
-                    polygon = canvas.create_polygon(p_0,p_1,[x+offset+delta_width, y], [x+offset, y] , outline="#000000", 
-                        fill=self.node_color, tag="root_node" + child.name)
+                    # Calculate color in hsv and convert to rgb and then to hex
+                    h = self.hue_color / 360
+                    s = max(0.3, 1 - d/self.tree_height)
+                    v = min(0.3 * len(child)/self.number_of_nodes + 0.7 * d/self.tree_height, 1)
+                    rgb = colorsys.hsv_to_rgb(h,s,v)
+                    hex = rgb2hex(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+                    outline_rgb = colorsys.hsv_to_rgb(h,s,0.7*v)
+                    outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), int(outline_rgb[2]*255))
+
+                    polygon = canvas.create_polygon(p_0,p_1,[x+offset+delta_width, y], [x+offset, y] , outline=outline_hex, 
+                        fill=hex, tag="root_node" + child.name)
                     canvas.tag_bind("root_node" + child.name, 
                         "<Button-1>", lambda event, node=child, rect=polygon:self.node_press(node, rect))
                     
@@ -173,6 +201,7 @@ class GUI:
                     c["x"] = x+offset
                     c["y"] = y
                     c["w"] = delta_width
+                    c["fill"] = hex
                     x = x + delta + adaptive_gap_size
                 
                 # Points shift for the next child in level order
