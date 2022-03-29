@@ -4,6 +4,7 @@ from time import sleep
 from tkinter import *
 from tkinter import filedialog
 from input_reader import InputReader
+from PIL import Image 
 
 # compute the height of a tree (naive method)
 def compute_heigth(node, current):
@@ -66,11 +67,11 @@ class GUI:
     # Start the drawing and recursion steps for the reclaiming icicle plot
     def draw_reclaiming_driver(self, canvas, node, height, row, min_x, max_x):
         # TODO: Change to a parameter that can change with in the GUI
-        self.gap_size = 5
-        self.shrinking_factor = 0.5
-        self.max_span = 2
-        self.space_reclaiming_factor = 0.8
-        self.hue_color = 122
+        self.gap_size = int(self.gap_size_entry.get())
+        self.shrinking_factor = float(self.shrinking_factor_entry.get())
+        self.max_span = int(self.max_span_entry.get())
+        self.space_reclaiming_factor = float(self.space_reclaiming_factor_entry.get())
+        self.hue_color = int(self.hue_color_entry.get())
 
         # Needed for color later
         self.number_of_nodes = len(node)
@@ -181,7 +182,7 @@ class GUI:
                     # Get the portion of usable space for the child
                     delta = len(child)/A * useable_space_U
                     delta_width = min(delta, self.max_node_size) # check to be not over the maximum allowed size
-                    offset = 250 + (delta - delta_width)/2 # Using 250 here since that is the start left side coordinate of the canvas
+                    offset = (delta - delta_width)/2 # Using 250 here since that is the start left side coordinate of the canvas
 
                     # Calculate color in hsv and convert to rgb and then to hex
                     h = self.hue_color / 360
@@ -271,7 +272,7 @@ class GUI:
         self.tree_height = compute_heigth(self.input_reader.get_tree(), 1)
         self.plot_canvas.delete("all")
         self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
-            self.tree_height, 1, 250, self.plot_canvas.winfo_width())
+            self.tree_height, 1, 0, self.plot_canvas.winfo_width())
         # self.draw_tree(self.plot_canvas, self.input_reader.get_tree(), 
         #     self.tree_height, 1, 250, self.plot_canvas.winfo_width())
 
@@ -284,7 +285,22 @@ class GUI:
 
     # The event handler for pressing the export button
     def export_button_function(self):
+        self.plot_canvas.postscript(file="export.eps")
+        img = Image.open("export.eps")
+        img.save("export.png", "png")
         print(self.import_button.winfo_width())
+
+    # Update parameters and redraw
+    def apply_button_function(self):
+        self.plot_canvas.delete("all")
+        self.gap_size = int(self.gap_size_entry.get())
+        self.shrinking_factor = float(self.shrinking_factor_entry.get())
+        self.max_span = int(self.max_span_entry.get())
+        self.space_reclaiming_factor = float(self.space_reclaiming_factor_entry.get())
+        self.hue_color = int(self.hue_color_entry.get())
+
+        self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
+            self.tree_height, 1, 0, self.plot_canvas.winfo_width())
 
     # The event handler for resizing the screen, redraw and clear selection 
     def resize(self, event):
@@ -292,7 +308,7 @@ class GUI:
             self.plot_canvas.delete("all")
             # self.draw_tree(self.plot_canvas, self.input_reader.get_tree(), 
             #     self.tree_height, 1, 250, self.plot_canvas.winfo_width())
-            self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), self.tree_height, 1, 250, self.plot_canvas.winfo_width())
+            self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), self.tree_height, 1, 0, self.plot_canvas.winfo_width())
             self.selected_label.config(text="[Selected Node]")
             self.parent_label.config(text="[Parent Node]")
             self.children_label.config(text="[Children Nodes]")
@@ -305,14 +321,10 @@ class GUI:
         self.root.configure(background=self.bg_color)
         self.root.title("Circular Space Reclaiming Plots Visualizer")
 
-        # This is where the plot will be 
-        self.plot_canvas = Canvas(self.root, bg="pink")
-        self.plot_canvas.pack(side=RIGHT, fill=BOTH, expand=TRUE)
-        self.plot_canvas.bind("<Configure>", self.resize)
-
         # This is the frame for the rest (with grid layout)
-        left_frame = Frame(self.root, bg = self.bg_color)
-        left_frame.place(relheight=1, width = 250)
+        left_frame = Frame(self.root, bg = self.bg_color, width = 250)
+        left_frame.pack(side=LEFT, fill=Y)
+        # left_frame.place(relheight=1, width = 250)
         # The grid layout
         left_frame.rowconfigure(0, weight=0)
         left_frame.rowconfigure(1, weight=0)
@@ -320,7 +332,13 @@ class GUI:
         left_frame.rowconfigure(3, weight=0)
         left_frame.rowconfigure(4, weight=0)
         left_frame.rowconfigure(5, weight=1)
+        left_frame.rowconfigure(6, weight=1)
         left_frame.columnconfigure(0, weight=1)
+
+        # This is where the plot will be 
+        self.plot_canvas = Canvas(self.root, bg="pink")
+        self.plot_canvas.pack(side=RIGHT, fill=BOTH, expand=TRUE)
+        self.plot_canvas.bind("<Configure>", self.resize)
 
         # The button/filethingy used for importing
         self.import_button = Button(left_frame, text="Import", bg=self.bg_color, fg="white", 
@@ -351,26 +369,87 @@ class GUI:
             activebackground=self.second_color)
         animation_speed.grid(row=4, column=0, sticky="ew", padx=(10,10), pady=(10,10))
 
+        # The parameter frame
+        parameter_frame = Frame(left_frame, bg = self.bg_color)
+        parameter_frame.grid(row=5, column=0, sticky="nsew", padx=(10,10), pady=(10,10))
+        for i in range(5):
+            parameter_frame.rowconfigure(i, weight=1)
+        for i in range(2):
+            parameter_frame.columnconfigure(i, weight=1)
+        
+        # Parameters for changing the space reclaiming part in the parameter frame
+        # gap size label
+        gap_size_label = Label(parameter_frame, text="Gap size", bg = self.bg_color, 
+            fg = "white", justify=LEFT, anchor="w")
+        gap_size_label.grid(row=0, column=0, sticky = "w", padx=(10,10))
+
+        self.gap_size_entry = Entry(parameter_frame, bg = self.second_color, width = 6, 
+            fg = "white", highlightcolor = "white")
+        self.gap_size_entry.grid(row=0, column=1, sticky = "e")
+        self.gap_size_entry.insert(10, "5")
+
+        shrinking_factor_label = Label(parameter_frame, text="Shrinking factor", bg = self.bg_color, 
+            fg = "white", justify=LEFT, anchor="w")
+        shrinking_factor_label.grid(row=1, column=0, sticky = "w", padx=(10,10))
+
+        self.shrinking_factor_entry = Entry(parameter_frame, bg = self.second_color, width = 6, 
+            fg = "white", highlightcolor = "white")
+        self.shrinking_factor_entry.grid(row=1, column=1, sticky = "e")
+        self.shrinking_factor_entry.insert(10, "0.5")
+
+        max_span_label = Label(parameter_frame, text="Max factor", bg = self.bg_color, 
+            fg = "white", justify=LEFT, anchor="w")
+        max_span_label.grid(row=2, column=0, sticky = "w", padx=(10,10))
+
+        self.max_span_entry = Entry(parameter_frame, bg = self.second_color, width = 6, 
+            fg = "white", highlightcolor = "white")
+        self.max_span_entry.grid(row=2, column=1, sticky = "e")
+        self.max_span_entry.insert(10, "2")
+
+        space_reclaiming_factor_label = Label(parameter_frame, text="Space recl. factor", 
+            bg = self.bg_color, fg = "white", justify=LEFT, anchor="w")
+        space_reclaiming_factor_label.grid(row=3, column=0, sticky = "w", padx=(10,10))
+
+        self.space_reclaiming_factor_entry = Entry(parameter_frame, bg = self.second_color, 
+            width = 6, fg = "white", highlightcolor = "white")
+        self.space_reclaiming_factor_entry.grid(row=3, column=1, sticky = "e")
+        self.space_reclaiming_factor_entry.insert(10, "0.8")
+
+        hue_color_label = Label(parameter_frame, text="Hue color", 
+            bg = self.bg_color, fg = "white", justify=LEFT, anchor="w")
+        hue_color_label.grid(row=4, column=0, sticky = "w", padx=(10,10))
+
+        self.hue_color_entry = Entry(parameter_frame, bg = self.second_color, 
+            width = 6, fg = "white", highlightcolor = "white")
+        self.hue_color_entry.grid(row=4, column=1, sticky = "e")
+        self.hue_color_entry.insert(10, "122")
+
+        apply_button = Button(parameter_frame, text="Apply parameters", bg=self.bg_color, 
+            fg="white", activebackground=self.second_color, activeforeground="white",
+            command=self.apply_button_function)
+        apply_button.grid(row=5, column=0, columnspan = 2, 
+            sticky="nsew")
+
         # The information frame
         information_frame = Frame(left_frame, bg = self.second_color)
-        information_frame.grid(row=5, column=0, sticky="nsew", padx=(10,10), pady=(10,10))
+        information_frame.grid(row=6, column=0, sticky="nsew", padx=(10,10), pady=(5,5))
         for i in range(3):
             information_frame.rowconfigure(i, weight=1)
         
         # selected node text
         self.selected_label = Label(information_frame, text="[Selected Node]", 
             bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
-        self.selected_label.grid(row=0, column=0, sticky = "w", padx=(10,10), pady=(10,10))
+        self.selected_label.grid(row=0, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
         # parent label text
         self.parent_label = Label(information_frame, text="[Parent Node]", 
             bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
-        self.parent_label.grid(row=1, column=0, sticky = "w", padx=(10,10), pady=(10,10))
+        self.parent_label.grid(row=1, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
         # List of children text
         self.children_label = Label(information_frame, text="[List of Children]", 
             bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
-        self.children_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(10,10))
+        self.children_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
         # details text (not needed rn)
         # self.detail_label = Label(information_frame, text="[Node details]", 

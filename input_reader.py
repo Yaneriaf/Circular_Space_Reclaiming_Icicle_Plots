@@ -1,5 +1,5 @@
 # Class that reads the given input and allows other classes to access
-from asyncio.windows_events import NULL
+# from asyncio.windows_events import NULL
 import io
 import newick as nw
 from ete3 import Tree
