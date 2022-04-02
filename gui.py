@@ -97,7 +97,8 @@ class GUI:
         outline_rgb = colorsys.hsv_to_rgb(h,s,0.7*v)
         outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), int(outline_rgb[2]*255))
 
-        polygon = canvas.create_polygon([offset,min_y,max_x,min_y,max_x,max_y,offset,max_y], outline=outline_hex, 
+        polygon = canvas.create_polygon([offset,min_y,max_x,min_y,
+                max_x,max_y,offset,max_y], outline=outline_hex, 
                 fill=hex, tag="root_node" + node.name)
         canvas.tag_bind("root_node" + node.name, 
                 "<Button-1>", lambda event, node=node, rect=polygon:self.node_press(node, rect))
@@ -165,26 +166,33 @@ class GUI:
 
         # Go through the current list of parents at depth d-1, level order
         for i in range(0, len(P)):
-            p_node = next(item for item in self.tree_nodes if item["node"] == P[i]) # find node in dictionary
-            p_0 = [p_node["x"], p_node["y"]] # Upper left cooirdinate point of child
+            # find node in dictionary
+            p_node = next(item for item in self.tree_nodes if item["node"] == P[i]) 
+            # Upper left cooirdinate point of child
             if p_node["sticky"]:
+                p_0 = [p_node["x"], p_node["y"]]
                 children = [P[i]]
             else:
                 children = P[i].get_children()
             
             for child in children:
-                c = next(item for item in self.tree_nodes if item["node"] == child) # find child in dictionary
+                # find child in dictionary
+                c = next(item for item in self.tree_nodes if item["node"] == child) 
                 if c["sticky"]:
-                    p_1 = [p_0[0] + p_node["w"], p_0[1]] # Upper right cooirdinate point of child
-                    c["w"] = p_node["w"] * self.shrinking_factor # shrink the sticky node (reclaim)
+                    # Upper right cooirdinate point of child
+                    p_1 = [p_0[0] + p_node["w"], p_0[1]] 
+                    # shrink the sticky node (reclaim)
+                    c["w"] = p_node["w"] * self.shrinking_factor 
                     x = x + c["w"]
                     c["span"] += 1
                 else:
-                    p_1 = [p_0[0] + (len(child)/len(child.up)) * p_node["w"], p_0[1]] # Upper right cooirdinate point of child
+                    # Upper right cooirdinate point of child
+                    p_1 = [p_0[0] + (len(child)/len(child.up)) * p_node["w"], p_0[1]]
                     # Get the portion of usable space for the child
                     delta = len(child)/A * useable_space_U
-                    delta_width = min(delta, self.max_node_size) # check to be not over the maximum allowed size
-                    offset = (delta - delta_width)/2 # Using 250 here since that is the start left side coordinate of the canvas
+                    # check to be not over the maximum allowed size
+                    delta_width = min(delta, self.max_node_size) 
+                    offset = (delta - delta_width)/2 
 
                     # Calculate color in hsv and convert to rgb and then to hex
                     h = self.hue_color / 360
@@ -193,12 +201,15 @@ class GUI:
                     rgb = colorsys.hsv_to_rgb(h,s,v)
                     hex = rgb2hex(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
                     outline_rgb = colorsys.hsv_to_rgb(h,s,0.7*v)
-                    outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), int(outline_rgb[2]*255))
+                    outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), 
+                        int(outline_rgb[2]*255))
 
-                    polygon = canvas.create_polygon(p_0,p_1,[x+offset+delta_width, y], [x+offset, y] , outline=outline_hex, 
+                    polygon = canvas.create_polygon(p_0,p_1,[x+offset+delta_width, y], 
+                        [x+offset, y] , outline=outline_hex, 
                         fill=hex, tag="root_node" + child.name)
                     canvas.tag_bind("root_node" + child.name, 
-                        "<Button-1>", lambda event, node=child, rect=polygon:self.node_press(node, rect))
+                        "<Button-1>", lambda event, node=child, 
+                        rect=polygon:self.node_press(node, rect))
                     
                     # Save the position and width of the drawn child
                     c["x"] = x+offset
@@ -232,38 +243,9 @@ class GUI:
         
         # If there are more children then continue recursive call to the next level, at depth d+1
         if new_m > 0:
-           self.draw_reclaiming(d+1, new_P, new_m, new_A, (new_w + self.space_reclaiming_factor * (self.max_width - new_w)), (new_g * self.shrinking_factor), canvas)
-
-    # Draws the tree using a recursive call 
-    def draw_tree(self, canvas, node, height, row, min_x, max_x):
-        children = node.get_children()
-        # compute our drawing bounds
-        min_y = (canvas.winfo_height()/height)*(row-1)
-        max_y = (canvas.winfo_height()/height)*row
-
-        # Draw the current node
-        if node.up == None:
-            rectangle = canvas.create_rectangle(min_x, min_y, max_x, max_y, outline="#000000", 
-                fill=self.node_color, tag="root_node" + node.name)
-            canvas.tag_bind("root_node" + node.name, 
-                "<Button-1>", lambda event, node=node, rect=rectangle:self.node_press(node, rect))
-        else: 
-            rectangle = canvas.create_rectangle(min_x, min_y, max_x, max_y, outline="#000000", 
-                fill=self.node_color, tag=node.up.name + node.name)
-            canvas.tag_bind(node.up.name + node.name, 
-                "<Button-1>", lambda event, node=node, rect=rectangle:self.node_press(node, rect))
-
-        # This means you see updates in between
-        self.root.update()
-        self.root.update_idletasks()
-
-        # If there are children, draw those
-        width = max_x - min_x
-        if (len(children) > 0):
-            portion = width/len(children)
-            for i in range(len(children)):
-                self.draw_tree(canvas, children[i], height, row+1, 
-                    min_x+(portion*i), min_x+(portion*(i+1)))
+           self.draw_reclaiming(d+1, new_P, new_m, new_A, 
+                (new_w + self.space_reclaiming_factor * (self.max_width - new_w)), 
+                (new_g * self.shrinking_factor), canvas)
 
     def draw_sunburst(self, canvas, node, depth, layer, min_deg, max_deg):
         smallest_direction = min(self.mid_x, self.mid_y)
@@ -278,7 +260,8 @@ class GUI:
         if node.up is None:
             root = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
             canvas.tag_bind("root_node" + node.name,
-                            "<Button-1>", lambda event, node=node, rect=root: self.node_press(node, rect))
+                            "<Button-1>", lambda event, 
+                            node=node, rect=root: self.node_press(node, rect))
         else:
             # Inner ring of sector
             for i in range(max_deg, min_deg, -1):
@@ -286,7 +269,7 @@ class GUI:
                                self.mid_y + offset * 0.5 * np.sin(i * np.pi / 180)))
             sector = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
             canvas.tag_bind("root_node" + node.name,
-                            "<Button-1>", lambda event, node=node, rect=sector: self.node_press(node, rect))
+                        "<Button-1>", lambda event, node=node, rect=sector: self.node_press(node, rect))
 
         self.root.update()
         self.root.update_idletasks()
@@ -310,7 +293,6 @@ class GUI:
         self.sunburst_selected = False
         self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
                                     self.tree_height, 1, 0, self.plot_canvas.winfo_width())
-        # self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), self.tree_height, 1, 0, 360)
 
     # The event handler for pressing the change vis button
     def change_vis_button_function(self):
