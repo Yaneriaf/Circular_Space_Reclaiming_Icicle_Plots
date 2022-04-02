@@ -246,6 +246,7 @@ class GUI:
                     else: 
                         coords = [p_0,p_1,[x+offset+delta_width, y], [x+offset, y]]
 
+                    
                     polygon = canvas.create_polygon(coords, outline=outline_hex, 
                         fill=hex, tag="root_node" + child.name)
                     canvas.tag_bind("root_node" + child.name, 
