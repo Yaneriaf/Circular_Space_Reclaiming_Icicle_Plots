@@ -68,8 +68,7 @@ class GUI:
         self.selected_node = node
 
     # Start the drawing and recursion steps for the reclaiming icicle plot
-    def draw_reclaiming_driver(self, canvas, node, height, row, min_x, max_x):
-        # TODO: Change to a parameter that can change with in the GUI
+    def draw_reclaiming_driver(self, canvas, node, height, row, min_x, max_x, sunburst):
         self.gap_size = int(self.gap_size_entry.get())
         self.shrinking_factor = float(self.shrinking_factor_entry.get())
         self.max_span = int(self.max_span_entry.get())
@@ -81,6 +80,11 @@ class GUI:
         # These two lines might not be needed, but nice to have for maybe the sunburst
         self.max_node_size = max_x
         offset = min_x + (max_x - self.max_node_size)/2
+
+        # Drawing is based on which dimension in the smallest
+        smallest_direction = min(self.mid_x, self.mid_y)
+        # Outer ring starting point of the arc
+        sunburst_offset = (smallest_direction / self.tree_height) * (self.tree_height-height+1)
 
         # Maximal width of all nodes
         self.max_width = max_x - min_x
@@ -98,8 +102,17 @@ class GUI:
         outline_rgb = colorsys.hsv_to_rgb(h,s,0.7*v)
         outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), int(outline_rgb[2]*255))
 
-        polygon = canvas.create_polygon([offset,min_y,max_x,min_y,
-                max_x,max_y,offset,max_y], outline=outline_hex, 
+        # Coordinates drawing based on circular or horizontal
+        if sunburst:
+            coords = []
+            for i in range(min_x, max_x):
+                coords.append((self.mid_x + sunburst_offset * np.cos((i/20) * np.pi / 180),
+                            self.mid_y + sunburst_offset * np.sin((i/20) * np.pi / 180)))
+        else:
+            coords = [offset,min_y,max_x,min_y, max_x,max_y,offset,max_y]
+
+        # Draw the actual polygon
+        polygon = canvas.create_polygon(coords, outline=outline_hex, 
                 fill=hex, tag="root_node" + node.name)
         canvas.tag_bind("root_node" + node.name, 
                 "<Button-1>", lambda event, node=node, rect=polygon:self.node_press(node, rect))
@@ -120,7 +133,7 @@ class GUI:
 
         children = node.get_children()
         if (len(children) > 0):
-            self.draw_reclaiming(1, [node], len(children), len(node), max_x-min_x, 0, canvas)
+            self.draw_reclaiming(1, [node], len(children), len(node), max_x-min_x, 0, canvas, sunburst)
         
     """
     The recursive method for reclaiming icicle plot, this is called from the driver
@@ -141,8 +154,10 @@ class GUI:
         width taken by sticky nodes at depth d
     canvas : tkinter canvas object
         width taken by sticky nodes at depth d
+    sunburst : Boolean
+        Whether we need to draw a circle or not 
     """
-    def draw_reclaiming(self, d, P, m, A, w, g, canvas):
+    def draw_reclaiming(self, d, P, m, A, w, g, canvas, sunburst):
         # calculate the adaptive gap size and make sure it is not negative
         adaptive_gap_size = 0
         if m > 1:
@@ -154,9 +169,12 @@ class GUI:
         # Get usable space at the current depth d
         useable_space_U = w - g - (m-1) * adaptive_gap_size
 
-        # Get lower left cooirdinate point of child
+        # Get lower left coordinate point of child
         x = (self.max_width - w)/2
-        y = (d + 1) * self.height
+        if sunburst:
+            y = (min(self.mid_x, self.mid_y) / self.tree_height) * (d+1)
+        else:
+            y = (d + 1) * self.height
 
         # Parameters used for the next recursive call
         new_P = []
@@ -169,8 +187,15 @@ class GUI:
         for i in range(0, len(P)):
             # find node in dictionary
             p_node = next(item for item in self.tree_nodes if item["node"] == P[i]) 
-            p_0 = [p_node["x"], p_node["y"]]
-            # Upper left cooirdinate point of child
+            
+            if sunburst:
+                # inner left coordinate point
+                p_0 = [p_node["x"], ((min(self.mid_x, self.mid_y) / self.tree_height) * d)]
+            else:
+                # Upper left coordinate point of child
+                p_0 = [p_node["x"], p_node["y"]]
+            
+            # If the node is a child
             if p_node["sticky"]:
                 children = [P[i]]
             else:
@@ -180,14 +205,14 @@ class GUI:
                 # find child in dictionary
                 c = next(item for item in self.tree_nodes if item["node"] == child) 
                 if c["sticky"]:
-                    # Upper right cooirdinate point of child
+                    # Upper right coordinate point of child
                     p_1 = [p_0[0] + p_node["w"], p_0[1]] 
                     # shrink the sticky node (reclaim)
                     c["w"] = p_node["w"] * self.shrinking_factor 
                     x = x + c["w"]
                     c["span"] += 1
                 else:
-                    # Upper right cooirdinate point of child
+                    # Upper right coordinate point of child
                     p_1 = [p_0[0] + (len(child)/len(child.up)) * p_node["w"], p_0[1]]
                     # Get the portion of usable space for the child
                     delta = len(child)/A * useable_space_U
@@ -205,8 +230,23 @@ class GUI:
                     outline_hex = rgb2hex(int(outline_rgb[0]*255), int(outline_rgb[1]*255), 
                         int(outline_rgb[2]*255))
 
-                    polygon = canvas.create_polygon(p_0,p_1,[x+offset+delta_width, y], 
-                        [x+offset, y] , outline=outline_hex, 
+                    if sunburst:
+                        # for drawing a circle we need to add points
+                        coords = []
+
+                        # outer ring
+                        for i in range(int(x+offset), int(x+offset+delta_width)):
+                            coords.append((self.mid_x + y * np.cos((i/20) * np.pi / 180),
+                                        self.mid_y + y * np.sin((i/20) * np.pi / 180)))
+                        
+                        # inner ring
+                        for i in range(int(p_1[0]), int(p_0[0]), -1):
+                            coords.append((self.mid_x + p_0[1] * np.cos((i/20) * np.pi / 180),
+                                        self.mid_y + p_0[1] * np.sin((i/20) * np.pi / 180)))
+                    else: 
+                        coords = [p_0,p_1,[x+offset+delta_width, y], [x+offset, y]]
+
+                    polygon = canvas.create_polygon(coords, outline=outline_hex, 
                         fill=hex, tag="root_node" + child.name)
                     canvas.tag_bind("root_node" + child.name, 
                         "<Button-1>", lambda event, node=child, 
@@ -246,49 +286,7 @@ class GUI:
         if new_m > 0:
            self.draw_reclaiming(d+1, new_P, new_m, new_A, 
                 (new_w + self.space_reclaiming_factor * (self.max_width - new_w)), 
-                (new_g * self.shrinking_factor), canvas)
-
-    def draw_sunburst(self, canvas, node, depth, layer, min_deg, max_deg):
-        # Drawing is based on which dimension in the smallest
-        smallest_direction = min(self.mid_x, self.mid_y)
-        # Outer ring starting point of the arc
-        offset_prev = (smallest_direction / depth) * (layer-1)
-        offset = (smallest_direction / depth) * layer
-        # Get the children
-        children = node.get_children()
-        coords = []
-
-        # Outer ring of sector
-        for i in range(min_deg, max_deg):
-            coords.append((self.mid_x + offset * np.cos((i/20) * np.pi / 180),
-                           self.mid_y + offset * np.sin((i/20) * np.pi / 180)))
-        # If we are at the root
-        if node.up is None:
-            root = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
-            canvas.tag_bind("root_node" + node.name,
-                            "<Button-1>", lambda event, 
-                            node=node, rect=root: self.node_press(node, rect))      
-        else:
-            # Inner ring of sector
-            for i in range(max_deg, min_deg, -1):
-                coords.append((self.mid_x + offset_prev * np.cos((i/20) * np.pi / 180),
-                               self.mid_y + offset_prev * np.sin((i/20) * np.pi / 180)))
-            if coords != []:
-                sector = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
-                canvas.tag_bind("root_node" + node.name,
-                        "<Button-1>", lambda event, node=node, rect=sector: self.node_press(node, rect))
-            else:
-                print("not drawn")
-        self.root.update()
-        self.root.update_idletasks()
-
-        # If there are children, draw those
-        width = max_deg - min_deg
-        if len(children) > 0:
-            portion = width // len(children)
-            for i in range(len(children)):
-                self.draw_sunburst(canvas, children[i], depth, layer + 1,
-                                   min_deg + (portion * i), min_deg + (portion * (i + 1)))
+                (new_g * self.shrinking_factor), canvas, sunburst)
 
     # This function facilitates the selection of the input file and the creation of the input 
     # reader object for it
@@ -300,18 +298,20 @@ class GUI:
         self.plot_canvas.delete("all")
         self.sunburst_selected = False
         self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
-                                    self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+                                    self.tree_height, 1, 0, self.plot_canvas.winfo_width(), False)
+        # self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+        #                             self.tree_height, 1, 0, 7200, True)              
 
     # The event handler for pressing the change vis button
     def change_vis_button_function(self):
         if self.input_reader != None:
             if self.redraw:
                 if self.sunburst_selected:
-                    self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), 
-                        self.tree_height, 1, 0, 7200)
+                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
+                        self.tree_height, 1, 0, 7200, True)
                 else:
                     self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
-                        self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+                        self.tree_height, 1, 0, self.plot_canvas.winfo_width(), False)
                 self.redraw = False
                 self.change_button.config(text = "Change visualization")
             else:
@@ -319,11 +319,12 @@ class GUI:
                 if self.sunburst_selected:
                     self.sunburst_selected = False
                     self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
-                                        self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+                                        self.tree_height, 1, 0, self.plot_canvas.winfo_width(), 
+                                        False)
                 else:
                     self.sunburst_selected = True
-                    self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), 
-                        self.tree_height, 1, 0, 7200)
+                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
+                        self.tree_height, 1, 0, 7200, True)
             
         else:
             print("no file selected yet")
@@ -348,8 +349,12 @@ class GUI:
         self.space_reclaiming_factor = float(self.space_reclaiming_factor_entry.get())
         self.hue_color = int(self.hue_color_entry.get())
 
-        self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
-            self.tree_height, 1, 0, self.plot_canvas.winfo_width())
+        if self.sunburst_selected:
+            self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+                self.tree_height, 1, 0, 7200, True)
+        else:
+            self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+                self.tree_height, 1, 0, self.plot_canvas.winfo_width(), False)
 
     # The event handler for resizing the screen, redraw and clear selection 
     def resize(self, event):
@@ -447,7 +452,7 @@ class GUI:
         self.shrinking_factor_entry = Entry(parameter_frame, bg = self.second_color, width = 6, 
             fg = "white", highlightcolor = "white")
         self.shrinking_factor_entry.grid(row=1, column=1, sticky = "e")
-        self.shrinking_factor_entry.insert(10, "0.5")
+        self.shrinking_factor_entry.insert(10, "0.8")
 
         max_span_label = Label(parameter_frame, text="Max factor", bg = self.bg_color, 
             fg = "white", justify=LEFT, anchor="w")
@@ -465,7 +470,7 @@ class GUI:
         self.space_reclaiming_factor_entry = Entry(parameter_frame, bg = self.second_color, 
             width = 6, fg = "white", highlightcolor = "white")
         self.space_reclaiming_factor_entry.grid(row=3, column=1, sticky = "e")
-        self.space_reclaiming_factor_entry.insert(10, "0.8")
+        self.space_reclaiming_factor_entry.insert(10, "1")
 
         hue_color_label = Label(parameter_frame, text="Hue color", 
             bg = self.bg_color, fg = "white", justify=LEFT, anchor="w")
