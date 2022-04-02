@@ -168,9 +168,9 @@ class GUI:
         for i in range(0, len(P)):
             # find node in dictionary
             p_node = next(item for item in self.tree_nodes if item["node"] == P[i]) 
+            p_0 = [p_node["x"], p_node["y"]]
             # Upper left cooirdinate point of child
             if p_node["sticky"]:
-                p_0 = [p_node["x"], p_node["y"]]
                 children = [P[i]]
             else:
                 children = P[i].get_children()
@@ -248,29 +248,36 @@ class GUI:
                 (new_g * self.shrinking_factor), canvas)
 
     def draw_sunburst(self, canvas, node, depth, layer, min_deg, max_deg):
+        # Drawing is based on which dimension in the smallest
         smallest_direction = min(self.mid_x, self.mid_y)
-        offset = smallest_direction / depth * layer
+        # Outer ring starting point of the arc
+        offset_prev = (smallest_direction / depth) * (layer-1)
+        offset = (smallest_direction / depth) * layer
+        # Get the children
         children = node.get_children()
         coords = []
 
         # Outer ring of sector
         for i in range(min_deg, max_deg):
-            coords.append((self.mid_x + offset * np.cos(i * np.pi / 180),
-                           self.mid_y + offset * layer * np.sin(i * np.pi / 180)))
+            coords.append((self.mid_x + offset * np.cos((i/20) * np.pi / 180),
+                           self.mid_y + offset * np.sin((i/20) * np.pi / 180)))
+        # If we are at the root
         if node.up is None:
             root = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
             canvas.tag_bind("root_node" + node.name,
                             "<Button-1>", lambda event, 
-                            node=node, rect=root: self.node_press(node, rect))
+                            node=node, rect=root: self.node_press(node, rect))      
         else:
             # Inner ring of sector
             for i in range(max_deg, min_deg, -1):
-                coords.append((self.mid_x + offset * 0.5 * np.cos(i * np.pi / 180),
-                               self.mid_y + offset * 0.5 * np.sin(i * np.pi / 180)))
-            sector = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
-            canvas.tag_bind("root_node" + node.name,
+                coords.append((self.mid_x + offset_prev * np.cos((i/20) * np.pi / 180),
+                               self.mid_y + offset_prev * np.sin((i/20) * np.pi / 180)))
+            if coords != []:
+                sector = canvas.create_polygon(coords, outline="#000000", fill="#fb0", smooth="false")
+                canvas.tag_bind("root_node" + node.name,
                         "<Button-1>", lambda event, node=node, rect=sector: self.node_press(node, rect))
-
+            else:
+                print("not drawn")
         self.root.update()
         self.root.update_idletasks()
 
@@ -305,7 +312,7 @@ class GUI:
             else:
                 self.sunburst_selected = True
                 self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), 
-                    self.tree_height, 1, 0, 360)
+                    self.tree_height, 1, 0, 7200)
             
         else:
             print("no file selected yet")
@@ -341,7 +348,7 @@ class GUI:
             self.plot_canvas.delete("all")
             if self.sunburst_selected:
                 self.draw_sunburst(self.plot_canvas, self.input_reader.get_tree(), 
-                    self.tree_height, 1, 0, 360)
+                    self.tree_height, 1, 0, 7200)
             else:
                 self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
                     self.tree_height, 1, 0, self.plot_canvas.winfo_width())
