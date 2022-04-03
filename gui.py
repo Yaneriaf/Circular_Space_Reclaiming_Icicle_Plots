@@ -7,6 +7,8 @@ from input_reader import InputReader
 from PIL import Image
 import numpy as np
 
+from zoom import Zoom
+
 # compute the height of a tree (naive method)
 def compute_heigth(node, current):
     children = node.get_children()
@@ -300,6 +302,7 @@ class GUI:
         self.sunburst_selected = False
         self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
                                     self.tree_height, 1, 0, self.plot_canvas.winfo_width(), False)
+        Zoom(self.root, self.plot_canvas) # Enable zooming and panning on the canvas
         # self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
         #                             self.tree_height, 1, 0, 7200, True)              
 
