@@ -333,7 +333,6 @@ class GUI:
         self.plot_canvas.postscript(file="export.eps")
         img = Image.open("export.eps")
         img.save("export.png", "png")
-        print(self.import_button.winfo_width())
 
     # Update parameters and redraw
     def apply_button_function(self):
@@ -358,7 +357,6 @@ class GUI:
         # Instead of immediately redrawing we will create a message to click the canvas to redraw
 
         if abs(self.plot_canvas.winfo_width() - self.window_width) > 50 or abs(self.plot_canvas.winfo_height() - self.window_height) > 50:
-            print(self.window_width)
             self.window_height = self.plot_canvas.winfo_height()
             self.window_width = self.plot_canvas.winfo_width()
 
