@@ -34,7 +34,8 @@ class GUI:
         self.selected_node = None
         self.selected_rect = None
         self.sunburst_selected = False
-        self.redraw = False
+        self.window_width = 1000
+        self.window_height = 700
 
         # Colors used
         self.bg_color = "#1A2227"
@@ -309,26 +310,16 @@ class GUI:
     # The event handler for pressing the change vis button
     def change_vis_button_function(self):
         if self.input_reader != None:
-            if self.redraw:
-                if self.sunburst_selected:
-                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
-                        self.tree_height, 1, 0, 7200, True)
-                else:
-                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
-                        self.tree_height, 1, 0, self.plot_canvas.winfo_width(), False)
-                self.redraw = False
-                self.change_button.config(text = "Change visualization")
+            self.plot_canvas.delete("all")
+            if self.sunburst_selected:
+                self.sunburst_selected = False
+                self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+                                    self.tree_height, 1, 0, self.plot_canvas.winfo_width(), 
+                                    False)
             else:
-                self.plot_canvas.delete("all")
-                if self.sunburst_selected:
-                    self.sunburst_selected = False
-                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
-                                        self.tree_height, 1, 0, self.plot_canvas.winfo_width(), 
-                                        False)
-                else:
-                    self.sunburst_selected = True
-                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
-                        self.tree_height, 1, 0, 7200, True)
+                self.sunburst_selected = True
+                self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
+                    self.tree_height, 1, 0, 7200, True)
             
         else:
             print("no file selected yet")
@@ -365,20 +356,26 @@ class GUI:
         self.mid_x = (self.plot_canvas.winfo_width())/2
         self.mid_y = self.plot_canvas.winfo_height()/2
         # Instead of immediately redrawing we will create a message to click the canvas to redraw
-        if self.input_reader != None:
-            self.plot_canvas.delete("all")
-            self.redraw = True
-            self.change_button.config(text = "Redraw")
-            
-            self.selected_label.config(text="[Selected Node]")
-            self.parent_label.config(text="[Parent Node]")
-            self.children_label.config(text="[Children Nodes]")
+
+        if abs(self.plot_canvas.winfo_width() - self.window_width) > 50 or abs(self.plot_canvas.winfo_height() - self.window_height) > 50:
+            print(self.window_width)
+            self.window_height = self.plot_canvas.winfo_height()
+            self.window_width = self.plot_canvas.winfo_width()
+
+            if self.input_reader != None:
+                self.plot_canvas.delete("all")
+                if self.sunburst_selected:
+                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(), 
+                        self.tree_height, 1, 0, 7200, True)
+                else:
+                    self.draw_reclaiming_driver(self.plot_canvas, self.input_reader.get_tree(),
+                        self.tree_height, 1, 0, self.plot_canvas.winfo_width(), False)
         
     def run_gui(self):
         
         # The root frame
         self.root = Tk()
-        self.root.geometry("1000x700")
+        self.root.geometry(str(self.window_width) + "x" + str(self.window_height))
         self.root.configure(background=self.bg_color)
         self.root.title("Circular Space Reclaiming Plots Visualizer")
 
@@ -499,17 +496,17 @@ class GUI:
         
         # selected node text
         self.selected_label = Label(information_frame, text="[Selected Node]", 
-            bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
+            bg = self.second_color, fg = "white", wraplength= 160, justify=LEFT, anchor="w")
         self.selected_label.grid(row=0, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
         # parent label text
         self.parent_label = Label(information_frame, text="[Parent Node]", 
-            bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
+            bg = self.second_color, fg = "white", wraplength= 160, justify=LEFT, anchor="w")
         self.parent_label.grid(row=1, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
         # List of children text
         self.children_label = Label(information_frame, text="[List of Children]", 
-            bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
+            bg = self.second_color, fg = "white", wraplength= 160, justify=LEFT, anchor="w")
         self.children_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
         # details text (not needed rn)
