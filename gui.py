@@ -6,7 +6,7 @@ from tkinter import filedialog
 from input_reader import InputReader
 from PIL import Image
 import numpy as np
-
+from tooltip import CanvasTooltip
 from zoom import Zoom
 
 # compute the height of a tree (naive method)
@@ -119,6 +119,7 @@ class GUI:
                 fill=hex, tag="root_node" + node.name)
         canvas.tag_bind("root_node" + node.name, 
                 "<Button-1>", lambda event, node=node, rect=polygon:self.node_press(node, rect))
+        CanvasTooltip(canvas, polygon, text=node.name)
 
         # Store certain values for all nodes, only root is filled with correct information.
         # The other nodes are needed for later and will be adjusted then to correct values
@@ -255,7 +256,7 @@ class GUI:
                     canvas.tag_bind("root_node" + child.name, 
                         "<Button-1>", lambda event, node=child, 
                         rect=polygon:self.node_press(node, rect))
-                    
+                    CanvasTooltip(canvas, polygon, text=child.name)
                     # Save the position and width of the drawn child
                     c["x"] = x+offset
                     c["y"] = y
