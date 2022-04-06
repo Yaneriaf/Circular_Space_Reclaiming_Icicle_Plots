@@ -8,15 +8,9 @@ import numpy as np   # numerical library
 class InputReader:
 
     def __init__(self, path):
-        with io.open(path, encoding='utf8') as file:
-            self.newick_tree = nw.load(file)
-
-        f = open(path, "r")
-        self.tree = Tree(f.read(), format=1)
-        print(self.tree)
-
-    def read_child(self, node):
-        return node.descendants
+        with io.open(path, 'r', encoding='utf-8') as file:
+            self.tree = Tree(file.read(), format=1)
+            file.close()
             
     def get_tree(self):
         return self.tree
