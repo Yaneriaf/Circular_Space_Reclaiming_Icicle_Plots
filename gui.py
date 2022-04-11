@@ -55,12 +55,11 @@ class GUI:
             self.parent_label.config(text = "Parent = " + node.up.name)
 
         if (len(node.children) == 0):
-            self.children_label.config(text = "Children = \nNone") 
+            self.children_label.delete(0,END)
         else:
-            children_string = ""
+            self.children_label.delete(0,END)
             for i in node.children:
-                children_string += "    "  + i.name + "\n"
-            self.children_label.config(text = "Children = \n" + children_string) 
+                self.children_label.insert(END, i.name) 
 
         # Keep track of what is selected
         if self.selected_rect != None:
@@ -500,8 +499,9 @@ class GUI:
         # The information frame
         information_frame = Frame(left_frame, bg = self.second_color)
         information_frame.grid(row=6, column=0, sticky="nsew", padx=(10,10), pady=(5,5))
-        for i in range(3):
+        for i in range(4):
             information_frame.rowconfigure(i, weight=1)
+      
         
         # selected node text
         self.selected_label = Label(information_frame, text="[Selected Node]", 
@@ -513,10 +513,15 @@ class GUI:
             bg = self.second_color, fg = "white", wraplength= 160, justify=LEFT, anchor="w")
         self.parent_label.grid(row=1, column=0, sticky = "w", padx=(10,10), pady=(5,5))
 
-        # List of children text
-        self.children_label = Label(information_frame, text="[List of Children]", 
+        # parent label text
+        ch_label = Label(information_frame, text="Children:", 
             bg = self.second_color, fg = "white", wraplength= 160, justify=LEFT, anchor="w")
-        self.children_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(5,5))
+        ch_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(5,0))
+
+        # List of children text
+        self.children_label = Listbox(information_frame, 
+            bg = self.second_color, fg = "white", justify=LEFT)
+        self.children_label.grid(row=3, column=0, sticky = "nsw", padx=(10,10), pady=(0,5))
 
         # Run the GUI
         self.root.mainloop()
