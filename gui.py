@@ -36,6 +36,7 @@ class GUI:
         self.sunburst_selected = False
         self.window_width = 1000
         self.window_height = 700
+        self.animation_delay = 0
 
         # Colors used
         self.bg_color = "#1A2227"
@@ -134,6 +135,11 @@ class GUI:
             "span": 0,
             "fill" : hex
         })
+
+        self.root.update()
+        self.animation_delay = self.animation_delay_slider.get()
+        sleep(0.001*self.animation_delay)
+        self.root.update_idletasks()
 
         children = node.get_children()
         if (len(children) > 0):
@@ -257,6 +263,13 @@ class GUI:
                         "<Button-1>", lambda event, node=child, 
                         rect=polygon:self.node_press(node, rect))
                     CanvasTooltip(canvas, polygon, text=child.name)
+
+                    # This means you see updates in between
+                    self.root.update()
+                    self.animation_delay = self.animation_delay_slider.get()
+                    sleep(0.001*self.animation_delay)
+                    self.root.update_idletasks()
+
                     # Save the position and width of the drawn child
                     c["x"] = x+offset
                     c["y"] = y
@@ -282,10 +295,6 @@ class GUI:
                         weight_new_C += len(t)
                     new_A += weight_new_C
                     new_w += delta
-
-        # This means you see updates in between
-        self.root.update()
-        self.root.update_idletasks()
         
         # If there are more children then continue recursive call to the next level, at depth d+1
         if new_m > 0:
@@ -419,12 +428,13 @@ class GUI:
             command=self.export_button_function)
         export_button.grid(row=3, column=0, sticky="nsew", padx=(10,10), pady=(10,10))
 
-        # The animation speed slider (ugly)
-        animation_speed = Scale(left_frame, from_=0, to=100, orient=HORIZONTAL, bg=self.bg_color, 
-            fg="white", label="Animation Speed", showvalue=0, troughcolor=self.second_color, 
+        # The animation speed slider
+        self.animation_delay_slider = Scale(left_frame, from_=0, to=500, orient=HORIZONTAL, 
+            bg=self.bg_color, 
+            fg="white", label="Animation Delay (ms)", showvalue=1, troughcolor=self.second_color, 
             highlightcolor=self.second_color, bd=1, highlightthickness=0, 
-            activebackground=self.second_color)
-        animation_speed.grid(row=4, column=0, sticky="ew", padx=(10,10), pady=(10,10))
+            activebackground=self.second_color, variable=self.animation_delay)
+        self.animation_delay_slider.grid(row=4, column=0, sticky="ew", padx=(10,10), pady=(10,10))
 
         # The parameter frame
         parameter_frame = Frame(left_frame, bg = self.bg_color)
@@ -507,11 +517,6 @@ class GUI:
         self.children_label = Label(information_frame, text="[List of Children]", 
             bg = self.second_color, fg = "white", wraplength= 160, justify=LEFT, anchor="w")
         self.children_label.grid(row=2, column=0, sticky = "w", padx=(10,10), pady=(5,5))
-
-        # details text (not needed rn)
-        # self.detail_label = Label(information_frame, text="[Node details]", 
-        #     bg = self.second_color, fg = "white", wraplength= 220, justify=LEFT, anchor="w")
-        # self.detail_label.grid(row=3, column=0, sticky = "w", padx=(10,10), pady=(10,10))
 
         # Run the GUI
         self.root.mainloop()
