@@ -1,4 +1,5 @@
 import colorsys
+from distutils.log import error
 from math import floor
 from time import sleep
 from tkinter import *
@@ -124,15 +125,16 @@ class GUI:
         # Store certain values for all nodes, only root is filled with correct information.
         # The other nodes are needed for later and will be adjusted then to correct values
         self.tree_nodes = []
-        for n in node.traverse("levelorder"):
-            self.tree_nodes.append({
-            "node" : n,
-            "x" : offset,
-            "y" : max_y,
-            "w" : self.max_node_size,
-            "sticky": False,
-            "span": 0,
-            "fill" : hex
+        # for n in node.traverse("levelorder"):
+        self.tree_nodes.append({
+        "node" : node,
+        "x" : offset,
+        "y" : max_y,
+        "w" : self.max_node_size,
+        "sticky": False,
+        "span": 0,
+        "fill" : hex,
+        "layer": 0
         })
 
         self.root.update()
@@ -212,7 +214,20 @@ class GUI:
             
             for child in children:
                 # find child in dictionary
-                c = next(item for item in self.tree_nodes if item["node"] == child) 
+                try: 
+                    c = next(item for item in self.tree_nodes if item["node"] == child)
+                except:
+                    c = {
+                        "node" : child,
+                        "x" : 0,
+                        "y" : 0,
+                        "w" : self.max_node_size,
+                        "sticky": False,
+                        "span": 0,
+                        "fill" : 0,
+                        "layer": d
+                    }
+                self.tree_nodes.append(c)
                 if c["sticky"]:
                     # Upper right coordinate point of child
                     p_1 = [p_0[0] + p_node["w"], p_0[1]] 
@@ -294,7 +309,17 @@ class GUI:
                         weight_new_C += len(t)
                     new_A += weight_new_C
                     new_w += delta
-        
+
+        # This means you see updates in between
+        self.root.update()
+        self.root.update_idletasks()
+
+        for i in sorted(range(0, len(self.tree_nodes)), reverse=True):
+            if self.tree_nodes[i]["layer"] == d-2 and self.tree_nodes[i]["layer"] > 0:
+                # print(self.tree_nodes[i])
+                del self.tree_nodes[i]
+        print(len(self.tree_nodes))
+
         # If there are more children then continue recursive call to the next level, at depth d+1
         if new_m > 0:
            self.draw_reclaiming(d+1, new_P, new_m, new_A, 
