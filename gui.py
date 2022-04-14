@@ -316,9 +316,7 @@ class GUI:
 
         for i in sorted(range(0, len(self.tree_nodes)), reverse=True):
             if self.tree_nodes[i]["layer"] == d-3 and self.tree_nodes[i]["layer"] > 0:
-                # print(self.tree_nodes[i])
                 del self.tree_nodes[i]
-        print(len(self.tree_nodes))
 
         # If there are more children then continue recursive call to the next level, at depth d+1
         if new_m > 0:
